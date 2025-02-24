@@ -1,0 +1,148 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+ 
+generator client {
+  provider = "prisma-client-js"
+}
+ 
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  Authenticator Authenticator[]
+  merchant      Merchant?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+ 
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
+}
+ 
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+ 
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@id([identifier, token])
+}
+ 
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([userId, credentialID])
+}
+
+model Merchant {
+  id                  String     @id @default(cuid())
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String     @unique
+  businessName        String
+  businessType        String?
+  taxId               String?    @unique
+  phoneNumber         String?
+  address             String?
+  isOnboarded         Boolean    @default(false)
+  stripeConnectId     String?    @unique
+  image               String?
+  country             String
+  terminals           Terminal[]
+  products            Product[]
+  
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+}
+
+model Terminal {
+  id                String        @id @default(cuid())
+  stripeTerminalId  String        @unique
+  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId        String
+  name              String?
+  description       String?
+  knowledgeBase     KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId   String
+  overrides         Json?
+  voice             String?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("terminals")
+}
+
+model Product {
+  id                String        @id @default(cuid())
+  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId        String
+  stripeProductId   String        @unique
+  name              String
+  description       String?
+  status            String        @default("active") // active, inactive, archived
+  categories        String[]
+  inStock           Boolean       @default(true)
+  stockQuantity     Int?
+  knowledgeBase     KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId   String
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("products")
+}
+
+model KnowledgeBase {
+  id               String     @id @default(cuid())
+  title            String
+  content          String
+  tags             String[]
+  active           Boolean    @default(true)
+  products         Product[]
+  terminals        Terminal[]
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+} 

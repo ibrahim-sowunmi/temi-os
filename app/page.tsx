@@ -1,13 +1,36 @@
-import Image from "next/image";
+import { auth } from "@/auth";
 
-export default function Home() {
+import SignOut from "./components/buttons/SignOut";
+import SignIn from "./components/buttons/SignIn";
+
+export default async function Home() {
+  const session = await auth();
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-24">
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
+        <div className="absolute top-5 right-5 flex items-center gap-4">
+          {session?.user ? (
+            <div className="flex items-center gap-4">
+              {session.user.image && (
+                <img
+                  src={session.user.image}
+                  alt="User Avatar"
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
+              <span>{session.user.name}</span>
+              <SignOut />
+            </div>
+          ) : (
+            <SignIn />
+          )}
+        </div>
+
         <h1 className="text-6xl font-bold mb-8 text-center">
           Welcome to Your Next.js App
         </h1>
-        
+
         <p className="text-xl text-center mb-8">
           Get started by editing{' '}
           <code className="font-mono font-bold">app/page.tsx</code>
