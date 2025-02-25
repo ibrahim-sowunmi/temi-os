@@ -28,31 +28,9 @@ export default async function Home() {
         </div>
 
         <h1 className="text-6xl font-bold mb-8 text-center">
-          Welcome to Your Next.js App
+          Temi OS 
         </h1>
 
-        <p className="text-xl text-center mb-8">
-          Get started by editing{' '}
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-          <Card
-            title="Documentation"
-            description="Find in-depth information about Next.js features and API."
-            link="https://nextjs.org/docs"
-          />
-          <Card
-            title="Learn"
-            description="Learn about Next.js in an interactive course with quizzes!"
-            link="https://nextjs.org/learn"
-          />
-          <Card
-            title="Templates"
-            description="Explore starter templates for Next.js."
-            link="https://vercel.com/templates?framework=next.js"
-          />
-        </div>
       </div>
     </main>
   );
