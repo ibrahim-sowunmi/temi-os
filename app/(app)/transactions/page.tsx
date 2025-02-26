@@ -1,21 +1,95 @@
-export default function TransactionsPage() {
+import { auth } from "@/auth";
+import { prisma } from "@/app/lib/prisma";
+import StripeConnectWrapper from "@/app/components/stripe/StripeConnectWrapper";
+
+async function getMerchantInfo(email: string) {
+  try {
+    const merchant = await prisma.merchant.findFirst({
+      where: {
+        user: {
+          email: email
+        }
+      },
+      select: {
+        id: true,
+        stripeConnectId: true,
+        isOnboarded: true
+      }
+    });
+
+    if (!merchant) {
+      throw new Error('Merchant not found');
+    }
+
+    return merchant;
+  } catch (error) {
+    console.error('Failed to fetch merchant info:', error);
+    return null;
+  }
+}
+
+export default async function TransactionsPage() {
+  const session = await auth();
+  
+  if (!session?.user?.email) {
+    return (
+      <div className="p-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <p className="text-red-500">You need to be logged in to view your transactions.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const merchantData = await getMerchantInfo(session.user.email);
+  
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Transactions</h1>
       <div className="bg-white rounded-lg shadow-md p-6">
-        <p className="text-gray-600 mb-4">
-          View and manage your transaction history.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">Recent Transactions</h2>
-            <p className="text-gray-500">View your latest transaction activity</p>
+        {!merchantData || !merchantData.stripeConnectId ? (
+          <div>
+            <p className="text-gray-600 mb-4">
+              You need to connect your Stripe account to view transactions.
+            </p>
+            <a 
+              href="/merchant" 
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Set up Stripe Account
+            </a>
           </div>
-          <div className="border rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">Transaction Reports</h2>
-            <p className="text-gray-500">Generate detailed transaction reports</p>
+        ) : !merchantData.isOnboarded ? (
+          <div>
+            <p className="text-gray-600 mb-4">
+              Please complete your Stripe onboarding to view transactions.
+            </p>
+            <a 
+              href="/settings/account" 
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Complete Onboarding
+            </a>
           </div>
-        </div>
+        ) : (
+          <div>
+            <p className="text-gray-600 mb-4">
+              View and manage your transaction history.
+            </p>
+            
+            <StripeConnectWrapper
+              connectedAccountId={merchantData.stripeConnectId}
+              componentType="payments"
+              title="Transactions"              
+              additionalProps={{
+                // Optional default filters
+                // defaultFilters: {
+                //   status: ['succeeded', 'pending', 'failed'],
+                //   date: { after: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Last 30 days
+                // }
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

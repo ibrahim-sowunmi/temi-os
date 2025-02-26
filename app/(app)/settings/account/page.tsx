@@ -3,7 +3,7 @@ import { prisma } from "@/app/lib/prisma"
 import StripeOnboardingButton from "./StripeOnboardingButton"
 import StripeUpdateButton from "./StripeUpdateButton"
 import MerchantOffboardButton from "./MerchantOffboardButton"
-
+import StripeConnectWrapper from "@/app/components/stripe/StripeConnectWrapper"
 
 async function getMerchantInfo(email: string) {
   try {
@@ -71,6 +71,14 @@ export default async function AccountPage() {
                       Go to Stripe Dashboard
                     </a>
                     <StripeUpdateButton />
+                    
+                    {/* Stripe Connect Embedded Component */}
+                    <StripeConnectWrapper 
+                      connectedAccountId={merchantData.stripeConnectId}
+                      componentType="account_management"
+                      title="Manage Your Stripe Account"
+                      description="Update your bank accounts, payout settings, and other account details."
+                    />
                   </div>
                 ) : (
                   <StripeOnboardingButton />
