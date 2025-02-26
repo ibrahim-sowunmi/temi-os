@@ -1,4 +1,27 @@
-export default function DashboardPage() {
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
+import { prisma } from '@/app/lib/prisma';
+import { User, Merchant } from '@prisma/client';
+
+export default async function DashboardPage() {
+  const session = await auth();
+
+  // if user is not logged in, redirect to login page 
+  if (!session?.user?.email) {
+    redirect('/');
+  }
+
+  // Check if user has a merchant account
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: { merchant: true }
+  }) as (User & { merchant: Merchant | null }) | null;
+
+  // if user does not have a merchant account, redirect to onboarding page
+  if (!user?.merchant) {
+    redirect('/merchant');
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
