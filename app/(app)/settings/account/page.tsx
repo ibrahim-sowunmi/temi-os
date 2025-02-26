@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/app/lib/prisma"
 import StripeOnboardingButton from "./StripeOnboardingButton"
 import StripeUpdateButton from "./StripeUpdateButton"
+import MerchantOffboardButton from "./MerchantOffboardButton"
 
 
 async function getMerchantInfo(email: string) {
@@ -78,6 +79,14 @@ export default async function AccountPage() {
             ) : (
               <p className="text-yellow-600 mt-4">Not connected to Stripe</p>
             )}
+            
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Account Management</h3>
+              <p className="text-gray-500 mb-4">
+                Remove your merchant account from the platform. This action cannot be undone.
+              </p>
+              <MerchantOffboardButton merchantId={merchantData.id} />
+            </div>
           </div>
         </div>
 
