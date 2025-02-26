@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Temi OS",
-  description: "Your business management platform",
+  description: "Your AI Terminal Management Operating System",
 };
 
 export default function RootLayout({

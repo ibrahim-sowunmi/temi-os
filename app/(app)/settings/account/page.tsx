@@ -85,7 +85,11 @@ export default async function AccountPage() {
                 )}
               </div>
             ) : (
-              <p className="text-yellow-600 mt-4">Not connected to Stripe</p>
+              <div className="mt-4">
+                <p className="text-yellow-600 mb-3">Not connected to Stripe</p>
+                <p className="text-gray-600 mb-4">Connect your account with Stripe to start accepting payments and manage your business finances.</p>
+                <StripeOnboardingButton />
+              </div>
             )}
             
             <div className="mt-6 pt-6 border-t border-gray-200">

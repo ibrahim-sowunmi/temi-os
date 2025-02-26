@@ -1,6 +1,12 @@
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/prisma';
 import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+// Initialize Stripe with your secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia'
+});
 
 export const POST = auth(async function POST(req) {
   try {
@@ -60,7 +66,20 @@ export const POST = auth(async function POST(req) {
       );
     }
 
-    // Create the merchant profile
+    // Create a Stripe Connect account first
+    const stripeAccount = await stripe.accounts.create({
+      type: 'standard',
+      email: req.auth.user.email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      business_profile: {
+        name: businessName,
+      }
+    });
+
+    // Create the merchant profile with Stripe account ID
     const merchant = await prisma.merchant.create({
       data: {
         user: {
@@ -75,12 +94,16 @@ export const POST = auth(async function POST(req) {
         address,
         image,
         country,
-        isOnboarded: false
+        isOnboarded: false,
+        stripeConnectId: stripeAccount.id // Store the Stripe account ID
       }
     });
 
-    console.log('Merchant created:', merchant);
-    return NextResponse.json({ merchant });
+    console.log('Merchant created with Stripe account:', merchant);
+    return NextResponse.json({ 
+      merchant,
+      stripeAccountId: stripeAccount.id
+    });
   } catch (error) {
     console.error('Error in merchant onboarding:', error);
     return NextResponse.json(

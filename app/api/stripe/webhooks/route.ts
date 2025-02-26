@@ -8,6 +8,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+// Type definition for Stripe event types
+type StripeEventType = 
+  | 'account.updated'
+  | 'account.application.authorized'
+  | 'account.application.deauthorized'
+  | 'account.external_account.created'
+  | 'account.external_account.updated'
+  | 'account.external_account.deleted'
+  | 'terminal.reader.updated'
+  | 'terminal.reader.deleted'
+  | 'terminal.location.updated'
+  | 'terminal.location.deleted';
+
 export async function POST(request: Request) {
   console.log('🔔 [Stripe Webhook] Received webhook event');
   
@@ -39,7 +52,7 @@ export async function POST(request: Request) {
     console.log(`✅ [Stripe Webhook] Verified event: ${event.type}`);
 
     // Handle specific event types
-    switch (event.type) {
+    switch (event.type as StripeEventType) {
       case 'account.updated':
         await handleAccountUpdated(event);
         break;
@@ -57,6 +70,20 @@ export async function POST(request: Request) {
         break;
       case 'account.external_account.deleted':
         await handleExternalAccountDeleted(event);
+        break;
+      // Terminal reader events
+      case 'terminal.reader.updated':
+        await handleTerminalReaderUpdated(event);
+        break;
+      case 'terminal.reader.deleted':
+        await handleTerminalReaderDeleted(event);
+        break;
+      // Terminal location events
+      case 'terminal.location.updated':
+        await handleTerminalLocationUpdated(event);
+        break;
+      case 'terminal.location.deleted':
+        await handleTerminalLocationDeleted(event);
         break;
       // Add other event types as needed
       default:
@@ -175,4 +202,247 @@ async function handleExternalAccountDeleted(event: Stripe.Event) {
   console.log(`💳 [Stripe Webhook] External account deleted for ${externalAccount.account}`);
   
   // Implement your business logic for when a bank account or card is removed
+}
+
+// Terminal Reader Handlers
+async function handleTerminalReaderUpdated(event: Stripe.Event) {
+  const reader = event.data.object as Stripe.Terminal.Reader;
+  const stripeAccount = event.account as string;
+  
+  console.log(`📱 [Stripe Webhook] Terminal reader updated: ${reader.id} for account ${stripeAccount}`);
+  
+  try {
+    // First, find the merchant associated with this Stripe Connect account
+    const merchant = await prisma.merchant.findFirst({
+      where: { stripeConnectId: stripeAccount }
+    });
+
+    if (!merchant) {
+      console.log(`⚠️ [Stripe Webhook] No merchant found for Stripe account: ${stripeAccount}`);
+      return;
+    }
+
+    // Find the terminal reader in our database
+    const terminalReader = await prisma.terminal.findFirst({
+      where: {
+        stripeTerminalId: reader.id,
+        merchantId: merchant.id
+      }
+    });
+
+    if (!terminalReader) {
+      console.log(`⚠️ [Stripe Webhook] No terminal reader found for Stripe reader ID: ${reader.id}`);
+      return;
+    }
+
+    // Create base update data
+    const updateData: any = {};
+    
+    // Update name if it changed
+    if (reader.label && reader.label !== terminalReader.name) {
+      updateData.name = reader.label;
+    }
+    
+    // Update location if needed
+    if (reader.location) {
+      // Try to find the location in our database
+      const location = await prisma.location.findFirst({
+        where: {
+          stripeLocationId: reader.location,
+          merchantId: merchant.id
+        }
+      });
+
+      if (location) {
+        // Use the same connection pattern as in the PUT endpoint
+        updateData.location = {
+          connect: {
+            id: location.id
+          }
+        };
+      } else {
+        console.log(`⚠️ [Stripe Webhook] Location ${reader.location} not found in database`);
+      }
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length > 0) {
+      // Update the reader in our database
+      await prisma.terminal.update({
+        where: { id: terminalReader.id },
+        data: updateData
+      });
+      console.log(`✅ [Stripe Webhook] Updated terminal reader ${terminalReader.id} in database`);
+    } else {
+      console.log(`ℹ️ [Stripe Webhook] No changes needed for terminal reader ${terminalReader.id}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ [Stripe Webhook] Error handling terminal.reader.updated event: ${error?.message || 'Unknown error'}`);
+    throw error;
+  }
+}
+
+async function handleTerminalReaderDeleted(event: Stripe.Event) {
+  const reader = event.data.object as Stripe.Terminal.Reader;
+  const stripeAccount = event.account as string;
+  
+  console.log(`🗑️ [Stripe Webhook] Terminal reader deleted: ${reader.id} for account ${stripeAccount}`);
+  
+  try {
+    // First, find the merchant associated with this Stripe Connect account
+    const merchant = await prisma.merchant.findFirst({
+      where: { stripeConnectId: stripeAccount }
+    });
+
+    if (!merchant) {
+      console.log(`⚠️ [Stripe Webhook] No merchant found for Stripe account: ${stripeAccount}`);
+      return;
+    }
+
+    // Find the terminal reader in our database
+    const terminalReader = await prisma.terminal.findFirst({
+      where: {
+        stripeTerminalId: reader.id,
+        merchantId: merchant.id
+      }
+    });
+
+    if (!terminalReader) {
+      console.log(`⚠️ [Stripe Webhook] No terminal reader found for Stripe reader ID: ${reader.id}`);
+      return;
+    }
+
+    // Delete the reader from our database
+    await prisma.terminal.delete({
+      where: { id: terminalReader.id }
+    });
+
+    console.log(`✅ [Stripe Webhook] Deleted terminal reader ${terminalReader.id} from database`);
+  } catch (error: any) {
+    console.error(`❌ [Stripe Webhook] Error handling terminal.reader.deleted event: ${error?.message || 'Unknown error'}`);
+    throw error;
+  }
+}
+
+// Terminal Location Handlers
+async function handleTerminalLocationUpdated(event: Stripe.Event) {
+  const location = event.data.object as Stripe.Terminal.Location;
+  const stripeAccount = event.account as string;
+  
+  console.log(`🏬 [Stripe Webhook] Terminal location updated: ${location.id} for account ${stripeAccount}`);
+  
+  try {
+    // First, find the merchant associated with this Stripe Connect account
+    const merchant = await prisma.merchant.findFirst({
+      where: { stripeConnectId: stripeAccount }
+    });
+
+    if (!merchant) {
+      console.log(`⚠️ [Stripe Webhook] No merchant found for Stripe account: ${stripeAccount}`);
+      return;
+    }
+
+    // Find the location in our database
+    const dbLocation = await prisma.location.findFirst({
+      where: {
+        stripeLocationId: location.id,
+        merchantId: merchant.id
+      }
+    });
+
+    if (!dbLocation) {
+      console.log(`⚠️ [Stripe Webhook] No location found for Stripe location ID: ${location.id}`);
+      return;
+    }
+
+    // Create update data
+    const updateData: any = {};
+    
+    // Update display name if changed
+    if (location.display_name && location.display_name !== dbLocation.displayName) {
+      updateData.displayName = location.display_name;
+    }
+    
+    // Update address if changed
+    if (location.address) {
+      // Convert address to a proper JSON object
+      const addressObject = location.address as Record<string, any>;
+      updateData.address = addressObject;
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length > 0) {
+      // Update the location in our database
+      await prisma.location.update({
+        where: { id: dbLocation.id },
+        data: updateData
+      });
+      console.log(`✅ [Stripe Webhook] Updated location ${dbLocation.id} in database`);
+    } else {
+      console.log(`ℹ️ [Stripe Webhook] No changes needed for location ${dbLocation.id}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ [Stripe Webhook] Error handling terminal.location.updated event: ${error?.message || 'Unknown error'}`);
+    throw error;
+  }
+}
+
+async function handleTerminalLocationDeleted(event: Stripe.Event) {
+  const location = event.data.object as Stripe.Terminal.Location;
+  const stripeAccount = event.account as string;
+  
+  console.log(`🗑️ [Stripe Webhook] Terminal location deleted: ${location.id} for account ${stripeAccount}`);
+  
+  try {
+    // First, find the merchant associated with this Stripe Connect account
+    const merchant = await prisma.merchant.findFirst({
+      where: { stripeConnectId: stripeAccount }
+    });
+
+    if (!merchant) {
+      console.log(`⚠️ [Stripe Webhook] No merchant found for Stripe account: ${stripeAccount}`);
+      return;
+    }
+
+    // Find the location in our database
+    const dbLocation = await prisma.location.findFirst({
+      where: {
+        stripeLocationId: location.id,
+        merchantId: merchant.id
+      }
+    });
+
+    if (!dbLocation) {
+      console.log(`⚠️ [Stripe Webhook] No location found for Stripe location ID: ${location.id}`);
+      return;
+    }
+
+    // Check if there are any terminals using this location
+    const terminals = await prisma.terminal.findMany({
+      where: { locationId: dbLocation.id }
+    });
+
+    if (terminals.length > 0) {
+      console.log(`⚠️ [Stripe Webhook] Cannot delete location ${dbLocation.id} - it has ${terminals.length} terminals associated with it`);
+      
+      // Instead of deleting, mark as inactive
+      await prisma.location.update({
+        where: { id: dbLocation.id },
+        data: { active: false }
+      });
+      
+      console.log(`✅ [Stripe Webhook] Marked location ${dbLocation.id} as inactive`);
+      return;
+    }
+
+    // If no terminals are using this location, delete it
+    await prisma.location.delete({
+      where: { id: dbLocation.id }
+    });
+
+    console.log(`✅ [Stripe Webhook] Deleted location ${dbLocation.id} from database`);
+  } catch (error: any) {
+    console.error(`❌ [Stripe Webhook] Error handling terminal.location.deleted event: ${error?.message || 'Unknown error'}`);
+    throw error;
+  }
 } 

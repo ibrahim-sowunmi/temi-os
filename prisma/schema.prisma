@@ -76,6 +76,13 @@ model Authenticator {
   @@id([userId, credentialID])
 }
 
+enum KnowledgeBaseScope {
+  GLOBAL
+  LOCATION
+  READER
+  PRODUCT
+}
+
 model Merchant {
   id                  String     @id @default(cuid())
   user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -91,6 +98,7 @@ model Merchant {
   country             String
   terminals           Terminal[]
   products            Product[]
+  locations           Location[]
   
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
@@ -101,10 +109,12 @@ model Terminal {
   stripeTerminalId  String        @unique
   merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   merchantId        String
+  location          Location      @relation(fields: [locationId], references: [id])
+  locationId        String
   name              String?
   description       String?
-  knowledgeBase     KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
-  knowledgeBaseId   String
+  knowledgeBase     KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId   String?
   overrides         Json?
   voice             String?
 
@@ -115,34 +125,51 @@ model Terminal {
 }
 
 model Product {
-  id                String        @id @default(cuid())
-  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id                String          @id @default(cuid())
+  merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   merchantId        String
-  stripeProductId   String        @unique
+  stripeProductId   String          @unique
   name              String
   description       String?
-  status            String        @default("active") // active, inactive, archived
+  status            String          @default("active") // active, inactive, archived
   categories        String[]
-  inStock           Boolean       @default(true)
+  inStock           Boolean         @default(true)
   stockQuantity     Int?
-  knowledgeBase     KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
-  knowledgeBaseId   String
+  knowledgeBase     KnowledgeBase?  @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBaseId   String?
 
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@map("products")
 }
 
 model KnowledgeBase {
-  id               String     @id @default(cuid())
+  id               String              @id @default(cuid())
   title            String
   content          String
   tags             String[]
-  active           Boolean    @default(true)
+  active           Boolean             @default(true)
+  scope            KnowledgeBaseScope  @default(GLOBAL)
   products         Product[]
   terminals        Terminal[]
+  locations        Location[]
 
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+}
+
+model Location {
+  id               String          @id @default(cuid())
+  merchant         Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId       String
+  stripeLocationId String          @unique
+  displayName      String
+  address          Json            // Stores address details as JSON
+  terminals        Terminal[]
+  active           Boolean         @default(true)
+  knowledgeBases   KnowledgeBase[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 } 
