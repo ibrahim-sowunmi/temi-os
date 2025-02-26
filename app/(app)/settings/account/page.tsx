@@ -45,11 +45,11 @@ export default async function AccountPage() {
   if (!merchantData) return <div>Failed to load merchant data</div>
 
   return (
-    <div className="p-6">
+    <div className="w-full overflow-x-hidden">
       <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
       
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow w-full">
           <h2 className="text-xl font-semibold mb-4">Merchant Information</h2>
           <div className="space-y-2">
             <p><span className="font-medium">Name:</span> {merchantData.user.name}</p>
@@ -90,9 +90,9 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow w-full">
           <h2 className="text-xl font-semibold mb-4">Debug Information</h2>
-          <pre className="bg-gray-100 p-4 rounded overflow-auto">
+          <pre className="bg-gray-100 p-4 rounded max-h-80 overflow-auto w-full text-sm">
             {JSON.stringify({ session, merchantData }, null, 2)}
           </pre>
         </div>
