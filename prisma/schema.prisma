@@ -207,7 +207,7 @@ model Worker {
   firstMessage    String?
   prompt          String?
   voiceId         String?
-  
+  locationId      String?
   merchant        Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   merchantId      String
   locations       Location[]  // The locations this worker can work at

@@ -79,9 +79,13 @@ export const POST = auth(async function POST(req) {
       }
     });
 
+    // Generate unique merchant ID with mer_ prefix using crypto for secure UUID
+    const merchantId = `mer_${crypto.randomUUID().replace(/-/g, '')}`;
+
     // Create the merchant profile with Stripe account ID
     const merchant = await prisma.merchant.create({
       data: {
+        id: merchantId, // Custom ID with mer_ prefix
         user: {
           connect: {
             id: dbUser.id

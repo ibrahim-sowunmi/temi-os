@@ -10,56 +10,42 @@ interface DeleteWorkerButtonProps {
 }
 
 export default function DeleteWorkerButton({ workerId, workerName }: DeleteWorkerButtonProps) {
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const router = useRouter();
-  
-  const handleOpenConfirm = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsConfirmOpen(true);
-  };
-  
-  const handleCloseConfirm = () => {
-    setIsConfirmOpen(false);
-    setError(null);
-  };
-  
+
   const handleDelete = async () => {
-    setIsDeleting(true);
-    setError(null);
+    if (!workerId) return;
     
     try {
-      console.log(`Attempting to delete worker: ${workerId}`);
+      setIsDeleting(true);
       
       const response = await fetch(`/api/worker?id=${workerId}`, {
         method: 'DELETE',
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete worker');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete worker');
       }
       
-      console.log('Worker successfully deleted');
-      
-      // Close the modal and refresh the page to update the list
-      handleCloseConfirm();
+      // Redirect to workers page after successful deletion
+      router.push('/workers');
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting worker:', error);
-      setError(error.message || 'An error occurred while deleting the worker');
+      alert('Failed to delete worker. Please try again.');
     } finally {
       setIsDeleting(false);
+      setIsConfirmOpen(false);
     }
   };
-  
+
   return (
     <>
       <button
-        onClick={handleOpenConfirm}
-        className="text-gray-500 hover:text-red-500 transition-colors p-1"
+        onClick={() => setIsConfirmOpen(true)}
+        className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
         title="Delete worker"
       >
         <Trash2 size={18} />
@@ -67,52 +53,26 @@ export default function DeleteWorkerButton({ workerId, workerName }: DeleteWorke
       
       {/* Confirmation Modal */}
       {isConfirmOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50" 
-            onClick={handleCloseConfirm}
-          ></div>
-          
-          {/* Modal */}
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-auto z-10 relative">
-            <h3 className="text-lg font-semibold mb-4">Delete Worker</h3>
-            
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Delete Worker</h3>
             <p className="mb-4">
-              Are you sure you want to delete <span className="font-semibold">{workerName}</span>? 
-              This action cannot be undone.
+              Are you sure you want to delete worker <span className="font-semibold">{workerName}</span>? This action cannot be undone.
             </p>
-            
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-            
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end gap-3">
               <button
-                type="button"
-                onClick={handleCloseConfirm}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                onClick={() => setIsConfirmOpen(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
                 disabled={isDeleting}
               >
                 Cancel
               </button>
-              
               <button
-                type="button"
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-red-300"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-300"
                 disabled={isDeleting}
               >
-                {isDeleting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Deleting...
-                  </div>
-                ) : (
-                  'Delete'
-                )}
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
