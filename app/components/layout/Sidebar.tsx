@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageSquare,
+  Users,
+  Upload
 } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 
@@ -21,6 +23,8 @@ const navigation = [
   { name: 'Terminals', href: '/terminals', icon: Terminal },
   { name: 'Knowledge', href: '/knowledge', icon: BookOpen },
   { name: 'Conversations', href: '/conversations', icon: MessageSquare },
+  { name: 'Workers', href: '/workers', icon: Users },
+  { name: 'Deploy', href: '/deploy', icon: Upload },
 ];
 
 export default function Sidebar() {

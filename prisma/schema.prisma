@@ -112,6 +112,7 @@ model Merchant {
   products            Product[]
   locations           Location[]
   knowledgeBases      KnowledgeBase[]
+  workers             Worker[]   // Relation to workers associated with this merchant
   
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
@@ -192,7 +193,25 @@ model Location {
   terminals        Terminal[]
   active           Boolean         @default(true)
   knowledgeBases   KnowledgeBase[]
+  workers          Worker[]        // Relation to workers that can work at this location
 
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+}
+
+model Worker {
+  id              String     @id @default(cuid())
+  name            String
+  agentId         String
+  language        String     @default("en")
+  firstMessage    String?
+  prompt          String?
+  voiceId         String?
+  
+  merchant        Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId      String
+  locations       Location[]  // The locations this worker can work at
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 } 
