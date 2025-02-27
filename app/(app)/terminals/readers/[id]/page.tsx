@@ -2,6 +2,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteTerminalButton } from "../components/DeleteTerminalButton";
+import { ChevronLeft } from "lucide-react";
+import EditTerminalButton from "../components/EditTerminalButton";
+import { ProtectedClientComponent } from "@/app/components/ProtectedClientComponent";
 
 interface ReaderDetailPageProps {
   params: Promise<{ id: string }>;
@@ -10,6 +14,23 @@ interface ReaderDetailPageProps {
 export default async function ReaderDetailPage({ params }: ReaderDetailPageProps) {
   const session = await auth();
   if (!session) return <div>Not authenticated</div>;
+
+  // Helper function to format last seen text
+  function getLastSeenText(lastSeenDate: Date) {
+    const now = new Date();
+    const diffInMs = now.getTime() - new Date(lastSeenDate).getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    } else {
+      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+    }
+  }
 
   // Properly await params before accessing
   const resolvedParams = await params;
@@ -46,11 +67,23 @@ export default async function ReaderDetailPage({ params }: ReaderDetailPageProps
 
   return (
     <div className="p-8">
-      <div className="flex items-center mb-6">
-        <Link href="/terminals/readers" className="text-blue-600 hover:underline mr-4">
-          &larr; Back to Readers
+      <div className="mb-2">
+        <Link href="/terminals/readers" className="flex items-center text-blue-600 hover:underline w-fit">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          <span>Readers</span>
         </Link>
+      </div>
+      
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">{reader.name || "Terminal Reader"}</h1>
+        <div className="flex gap-2">
+          <ProtectedClientComponent>
+            <EditTerminalButton terminal={reader} />
+          </ProtectedClientComponent>
+          <ProtectedClientComponent>
+            <DeleteTerminalButton readerId={reader.id} readerName={reader.name || ""} />
+          </ProtectedClientComponent>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -78,6 +111,34 @@ export default async function ReaderDetailPage({ params }: ReaderDetailPageProps
               <div className="border-b pb-3">
                 <div className="text-sm text-gray-500">Voice</div>
                 <div>{reader.voice || "Default voice"}</div>
+              </div>
+              <div className="border-b pb-3">
+                <div className="text-sm text-gray-500">Device Type</div>
+                <div className="flex items-center">
+                  {reader.deviceType || "Unknown"}
+                  {reader.deviceType && (
+                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      reader.deviceType.includes('simulated') 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {reader.deviceType.includes('simulated') ? 'Simulated' : 'Physical'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="border-b pb-3">
+                <div className="text-sm text-gray-500">Last Seen</div>
+                <div>
+                  {reader.lastSeenAt 
+                    ? new Date(reader.lastSeenAt).toLocaleString() 
+                    : "Never connected"}
+                  {reader.lastSeenAt && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {getLastSeenText(reader.lastSeenAt)}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="border-b pb-3">
                 <div className="text-sm text-gray-500">Created At</div>

@@ -95,6 +95,11 @@ export default async function TerminalsPage() {
           <p className="text-gray-600 mt-2">
             View and manage all your payment terminal readers. Each reader can be configured with custom settings.
           </p>
+          <div className="mt-4">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {readers.length} Terminal{readers.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </Link>
         
         <Link href="/terminals/locations" className="bg-white rounded-lg shadow-md p-6 hover:bg-gray-50 transition-colors">
@@ -107,6 +112,11 @@ export default async function TerminalsPage() {
           <p className="text-gray-600 mt-2">
             Manage your business locations. Each location can have multiple terminal readers assigned to it.
           </p>
+          <div className="mt-4">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {locations.length} Location{locations.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </Link>
       </div>
       

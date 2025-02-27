@@ -108,8 +108,42 @@ export const POST = auth(async function POST(req) {
         connect: {
           id: location.id
         }
-      }
+      },
     };
+    
+    // Add device type and handle last seen timestamp separately
+    readerData.deviceType = (reader as any).device_type || "unknown";
+    
+    // Debug the last_seen_at value
+    console.log("POST /api/stripe/terminal/readers - last_seen_at value:", {
+      value: (reader as any).last_seen_at,
+      type: typeof (reader as any).last_seen_at
+    });
+    
+    // Safely handle the lastSeenAt timestamp
+    if ((reader as any).last_seen_at && typeof (reader as any).last_seen_at === 'number') {
+      try {
+        // Determine if timestamp is in seconds or milliseconds
+        // If it's a small number (< 10 digits), assume it's in seconds and convert
+        // Otherwise assume it's already in milliseconds
+        const isInSeconds = String((reader as any).last_seen_at).length < 13;
+        const timestamp = isInSeconds 
+          ? Math.min((reader as any).last_seen_at * 1000, 8640000000000000)
+          : Math.min((reader as any).last_seen_at, 8640000000000000);
+          
+        readerData.lastSeenAt = new Date(timestamp);
+        console.log("POST /api/stripe/terminal/readers - Converted lastSeenAt:", {
+          timestamp,
+          isInSeconds,
+          result: readerData.lastSeenAt.toISOString()
+        });
+      } catch (dateError) {
+        console.log("POST /api/stripe/terminal/readers - Error converting lastSeenAt:", dateError);
+        readerData.lastSeenAt = null;
+      }
+    } else {
+      readerData.lastSeenAt = null;
+    }
 
     console.log("POST /api/stripe/terminal/readers - Creating reader in database with no knowledge base");
     
@@ -156,8 +190,43 @@ export const POST = auth(async function POST(req) {
     }
   } catch (error: any) {
     console.log("Error creating terminal reader:", error?.message || 'Unknown error');
+    
+    // More specific error handling for common Stripe errors
+    if (error?.message?.includes("No such registration code")) {
+      return NextResponse.json(
+        { 
+          error: "Invalid registration code", 
+          details: error.message,
+          code: "INVALID_REGISTRATION_CODE"
+        },
+        { status: 400 }
+      );
+    } else if (error?.type === "StripeInvalidRequestError") {
+      return NextResponse.json(
+        { 
+          error: "Invalid request to Stripe", 
+          details: error.message,
+          code: "STRIPE_INVALID_REQUEST"
+        },
+        { status: 400 }
+      );
+    } else if (error?.type === "StripeConnectionError") {
+      return NextResponse.json(
+        {
+          error: "Failed to connect to Stripe", 
+          details: "There was a problem connecting to Stripe. Please try again later.",
+          code: "STRIPE_CONNECTION_ERROR"
+        },
+        { status: 503 }  // Service Unavailable
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Failed to create terminal reader", details: error?.message || 'Unknown error' },
+      { 
+        error: "Failed to create terminal reader", 
+        details: error?.message || 'Unknown error',
+        code: "UNKNOWN_ERROR"
+      },
       { status: 500 }
     );
   }
@@ -417,6 +486,49 @@ export const PUT = auth(async function PUT(req) {
           id: location.id
         }
       };
+    }
+    
+    // Check for updated reader data from Stripe
+    if (merchant.stripeConnectId && reader.stripeTerminalId) {
+      try {
+        const stripeReader = await stripe.terminal.readers.retrieve(
+          reader.stripeTerminalId,
+          {
+            stripeAccount: merchant.stripeConnectId
+          }
+        );
+        
+        // Update device type and last seen if available
+        if ((stripeReader as any).device_type) {
+          updateData.deviceType = (stripeReader as any).device_type;
+        }
+        
+        // Safely handle the lastSeenAt timestamp during update
+        if ((stripeReader as any).last_seen_at && typeof (stripeReader as any).last_seen_at === 'number') {
+          try {
+            // Determine if timestamp is in seconds or milliseconds
+            // If it's a small number (< 10 digits), assume it's in seconds and convert
+            // Otherwise assume it's already in milliseconds
+            const isInSeconds = String((stripeReader as any).last_seen_at).length < 13;
+            const timestamp = isInSeconds 
+              ? Math.min((stripeReader as any).last_seen_at * 1000, 8640000000000000)
+              : Math.min((stripeReader as any).last_seen_at, 8640000000000000);
+              
+            updateData.lastSeenAt = new Date(timestamp);
+            console.log("PUT /api/stripe/terminal/readers - Converted lastSeenAt:", {
+              timestamp,
+              isInSeconds,
+              result: updateData.lastSeenAt.toISOString()
+            });
+          } catch (dateError) {
+            console.log("PUT /api/stripe/terminal/readers - Error converting lastSeenAt:", dateError);
+            // Don't update lastSeenAt if conversion fails
+          }
+        }
+      } catch (stripeError: any) {
+        console.log("Error fetching Stripe reader details:", stripeError?.message || 'Unknown Stripe error');
+        // Continue with update even if Stripe fetch fails
+      }
     }
     
     // Handle knowledge base update with proper connect/disconnect

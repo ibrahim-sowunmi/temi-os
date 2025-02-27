@@ -2,6 +2,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import { ProtectedClientComponent } from "@/app/components/ProtectedClientComponent";
+import EditLocationButton from "../components/EditLocationButton";
+import DeleteLocationButton from "../components/DeleteLocationButton";
 
 interface LocationDetailPageProps {
   params: Promise<{ id: string }>;
@@ -49,16 +53,23 @@ export default async function LocationDetailPage({ params }: LocationDetailPageP
 
   return (
     <div className="p-8">
-      <div className="flex items-center mb-6">
-        <Link href="/terminals/locations" className="text-blue-600 hover:underline mr-4">
-          &larr; Back to Locations
+      <div className="mb-2">
+        <Link href="/terminals/locations" className="flex items-center text-blue-600 hover:underline w-fit">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          <span>Locations</span>
         </Link>
-        <h1 className="text-3xl font-bold">{location.displayName}</h1>
-        {!location.active && (
-          <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            Inactive
-          </span>
-        )}
+      </div>
+      
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">{location.displayName || "Location"}</h1>
+        <div className="flex gap-2">
+          <ProtectedClientComponent>
+            <EditLocationButton location={location} />
+          </ProtectedClientComponent>
+          <ProtectedClientComponent>
+            <DeleteLocationButton locationId={location.id} locationName={location.displayName} />
+          </ProtectedClientComponent>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">

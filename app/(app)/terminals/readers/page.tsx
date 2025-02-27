@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import AddTerminalButton from "./components/AddTerminalButton";
+import { ProtectedClientComponent } from "@/app/components/ProtectedClientComponent";
 
 export default async function ReadersPage() {
   const session = await auth();
@@ -35,11 +38,18 @@ export default async function ReadersPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center mb-6">
-        <Link href="/terminals" className="text-blue-600 hover:underline mr-4">
-          &larr; Back to Terminals
+      <div className="mb-2">
+        <Link href="/terminals" className="flex items-center text-blue-600 hover:underline w-fit">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          <span>Terminals</span>
         </Link>
+      </div>
+      
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Terminal Readers</h1>
+        <ProtectedClientComponent>
+          <AddTerminalButton />
+        </ProtectedClientComponent>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">

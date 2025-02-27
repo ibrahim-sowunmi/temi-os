@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import { ProtectedClientComponent } from "@/app/components/ProtectedClientComponent";
+import AddLocationButton from "./components/AddLocationButton";
 
 export default async function LocationsPage() {
   const session = await auth();
@@ -34,11 +37,18 @@ export default async function LocationsPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center mb-6">
-        <Link href="/terminals" className="text-blue-600 hover:underline mr-4">
-          &larr; Back to Terminals
+      <div className="mb-2">
+        <Link href="/terminals" className="flex items-center text-blue-600 hover:underline w-fit">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          <span>Terminals</span>
         </Link>
+      </div>
+      
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Locations</h1>
+        <ProtectedClientComponent>
+          <AddLocationButton />
+        </ProtectedClientComponent>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">

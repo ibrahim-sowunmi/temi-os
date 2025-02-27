@@ -83,6 +83,18 @@ enum KnowledgeBaseScope {
   PRODUCT
 }
 
+enum TerminalDeviceType {
+  bbpos_chipper2x
+  bbpos_wisepad3
+  bbpos_wisepos_e
+  mobile_phone_reader
+  simulated_wisepos_e
+  stripe_m2
+  stripe_s700
+  verifone_P400
+  unknown
+}
+
 model Merchant {
   id                  String     @id @default(cuid())
   user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -117,6 +129,8 @@ model Terminal {
   knowledgeBaseId   String?
   overrides         Json?
   voice             String?
+  deviceType        TerminalDeviceType @default(unknown)
+  lastSeenAt        DateTime?
 
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -129,10 +143,16 @@ model Product {
   merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   merchantId        String
   stripeProductId   String          @unique
+  stripePriceId     String?         @unique
   name              String
   description       String?
+  active            Boolean         @default(true)
+  images            String[]        @default([])
+  metadata          Json?
   status            String          @default("active") // active, inactive, archived
   categories        String[]
+  price             Int?            // Price in cents
+  currency          String?         @default("usd")
   inStock           Boolean         @default(true)
   stockQuantity     Int?
   knowledgeBase     KnowledgeBase?  @relation(fields: [knowledgeBaseId], references: [id])
