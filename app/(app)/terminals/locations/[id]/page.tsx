@@ -12,12 +12,13 @@ interface LocationDetailPageProps {
 }
 
 export default async function LocationDetailPage({ params }: LocationDetailPageProps) {
+  // In Next.js 15, params is async and needs to be awaited
+  const awaitedParams = await params;
+  
   const session = await auth();
   if (!session) return <div>Not authenticated</div>;
 
-  // Properly await params before accessing
-  const resolvedParams = await params;
-  const locationId = resolvedParams.id;
+  const locationId = awaitedParams.id;
 
   // Get the merchant for the current user
   const merchant = await prisma.merchant.findFirst({

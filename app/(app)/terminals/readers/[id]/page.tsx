@@ -12,6 +12,9 @@ interface ReaderDetailPageProps {
 }
 
 export default async function ReaderDetailPage({ params }: ReaderDetailPageProps) {
+  // In Next.js 15, params is async and needs to be awaited
+  const awaitedParams = await params;
+  
   const session = await auth();
   if (!session) return <div>Not authenticated</div>;
 
@@ -32,9 +35,7 @@ export default async function ReaderDetailPage({ params }: ReaderDetailPageProps
     }
   }
 
-  // Properly await params before accessing
-  const resolvedParams = await params;
-  const readerId = resolvedParams.id;
+  const readerId = awaitedParams.id;
   
   // Get the merchant for the current user
   const merchant = await prisma.merchant.findFirst({

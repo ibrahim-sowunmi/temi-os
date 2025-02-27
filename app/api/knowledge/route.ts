@@ -42,9 +42,16 @@ export const GET = auth(async function GET(req) {
       
       const knowledgeBase = await prisma.knowledgeBase.findUnique({
         where: {
-          id
+          id,
+          merchantId: merchant.id // Only allow access to the merchant's own knowledge bases
         },
         include: {
+          merchant: {
+            select: {
+              id: true,
+              businessName: true
+            }
+          },
           products: {
             select: {
               id: true,
@@ -78,7 +85,10 @@ export const GET = auth(async function GET(req) {
     }
 
     // Otherwise, get all knowledge bases with optional scope filter
-    const whereClause: any = {};
+    const whereClause: any = {
+      merchantId: merchant.id // Filter by merchant ID
+    };
+    
     if (scope) {
       whereClause.scope = scope;
     }
@@ -88,6 +98,12 @@ export const GET = auth(async function GET(req) {
     const knowledgeBases = await prisma.knowledgeBase.findMany({
       where: whereClause,
       include: {
+        merchant: {
+          select: {
+            id: true,
+            businessName: true
+          }
+        },
         _count: {
           select: {
             products: true,
@@ -205,7 +221,8 @@ export const POST = auth(async function POST(req) {
       content,
       scope: finalScope,
       active,
-      tags: tags || []
+      tags: tags || [],
+      merchantId: merchant.id, // Associate with the merchant
     };
 
     // Add connections based on scope
@@ -279,6 +296,12 @@ export const POST = auth(async function POST(req) {
     const knowledgeBase = await prisma.knowledgeBase.create({
       data: createData,
       include: {
+        merchant: {
+          select: {
+            id: true,
+            businessName: true
+          }
+        },
         products: {
           select: {
             id: true,
@@ -365,7 +388,10 @@ export const PUT = auth(async function PUT(req) {
 
     // Fetch the existing knowledge base
     const existingKnowledgeBase = await prisma.knowledgeBase.findUnique({
-      where: { id },
+      where: { 
+        id,
+        merchantId: merchant.id // Ensure the knowledge base belongs to this merchant
+      },
       include: {
         products: true,
         terminals: true,
@@ -374,7 +400,7 @@ export const PUT = auth(async function PUT(req) {
     });
 
     if (!existingKnowledgeBase) {
-      console.log("PUT /api/knowledge - Knowledge base not found");
+      console.log("PUT /api/knowledge - Knowledge base not found or not owned by merchant");
       return NextResponse.json(
         { error: "Knowledge base not found" },
         { status: 404 }
@@ -555,9 +581,18 @@ export const PUT = auth(async function PUT(req) {
 
     // Update the knowledge base
     const updatedKnowledgeBase = await prisma.knowledgeBase.update({
-      where: { id },
+      where: { 
+        id,
+        merchantId: merchant.id // Ensure we're updating the merchant's own knowledge base
+      },
       data: updateData,
       include: {
+        merchant: {
+          select: {
+            id: true,
+            businessName: true
+          }
+        },
         products: {
           select: {
             id: true,
@@ -630,13 +665,16 @@ export const DELETE = auth(async function DELETE(req) {
       );
     }
 
-    // Check if the knowledge base exists
+    // Check if the knowledge base exists and belongs to this merchant
     const knowledgeBase = await prisma.knowledgeBase.findUnique({
-      where: { id }
+      where: { 
+        id,
+        merchantId: merchant.id // Ensure the knowledge base belongs to the merchant
+      }
     });
 
     if (!knowledgeBase) {
-      console.log("DELETE /api/knowledge - Knowledge base not found");
+      console.log("DELETE /api/knowledge - Knowledge base not found or not owned by merchant");
       return NextResponse.json(
         { error: "Knowledge base not found" },
         { status: 404 }
@@ -645,7 +683,10 @@ export const DELETE = auth(async function DELETE(req) {
 
     // Delete the knowledge base
     await prisma.knowledgeBase.delete({
-      where: { id }
+      where: { 
+        id,
+        merchantId: merchant.id // Ensure we're deleting the merchant's own knowledge base
+      }
     });
 
     console.log("DELETE /api/knowledge - Knowledge base deleted:", { id });

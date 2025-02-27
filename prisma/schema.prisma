@@ -111,6 +111,7 @@ model Merchant {
   terminals           Terminal[]
   products            Product[]
   locations           Location[]
+  knowledgeBases      KnowledgeBase[]
   
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
@@ -171,6 +172,8 @@ model KnowledgeBase {
   tags             String[]
   active           Boolean             @default(true)
   scope            KnowledgeBaseScope  @default(GLOBAL)
+  merchant         Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId       String
   products         Product[]
   terminals        Terminal[]
   locations        Location[]

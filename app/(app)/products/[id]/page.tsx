@@ -12,6 +12,9 @@ interface ProductDetailPageProps {
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+  // In Next.js 15, params is async and needs to be awaited
+  const awaitedParams = await params;
+  
   const session = await auth();
   if (!session) return <div>Not authenticated</div>;
 
@@ -28,9 +31,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     return <div>Merchant account not found</div>;
   }
 
-  // Properly await params before accessing
-  const resolvedParams = await params;
-  const productId = resolvedParams.id;
+  const productId = awaitedParams.id;
   
   // Get the product with its relations
   const product = await prisma.product.findUnique({
