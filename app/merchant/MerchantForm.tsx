@@ -17,7 +17,7 @@ const MerchantForm = ({ user }: MerchantFormProps) => {
     taxId: '',
     phoneNumber: '',
     address: '',
-    image: '',
+    imageUrl: '',
     country: ''
   });
 
@@ -30,31 +30,36 @@ const MerchantForm = ({ user }: MerchantFormProps) => {
       [name]: value
     }));
   };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setFormData(prev => ({
-          ...prev,
-          image: reader.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
+  
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: url
+    }));
+    
+    // If a URL is entered, use it as the preview
+    setImagePreview(url || null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Create a FormData object for submission
+      const formDataToSend = new FormData();
+      
+      // Add all fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) {
+          formDataToSend.append(key, value);
+        }
+      });
+
+      // Make your API call using FormData
       const response = await fetch('/api/merchant/onboard', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        // Don't set Content-Type header - the browser will set it with the correct boundary for FormData
+        body: formDataToSend,
       });
 
       if (!response.ok) {
@@ -176,16 +181,17 @@ const MerchantForm = ({ user }: MerchantFormProps) => {
 
           {/* Image Upload */}
           <div className="md:col-span-2">
-            <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
-              Business Logo
+            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Business Logo URL
             </label>
             <div className="flex items-center space-x-4">
               <input
-                type="file"
-                id="image"
-                name="image"
-                accept="image/*"
-                onChange={handleImageChange}
+                type="url"
+                id="imageUrl"
+                name="imageUrl"
+                placeholder="https://example.com/logo.png"
+                value={formData.imageUrl || ''}
+                onChange={handleImageUrlChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {imagePreview && (
